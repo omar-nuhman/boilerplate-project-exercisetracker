@@ -1,5 +1,6 @@
 const express = require('express')
 const app = express()
+app.use(express.urlencoded({ extended: true }))
 const cors = require('cors')
 const mongoose = require('mongoose')
 require('dotenv').config()
@@ -47,15 +48,47 @@ app.post('/api/users', (req, res) => {
     return res.status(400).json({ error: 'Username is required' });
   }
   const user = new User({ username });
-  user.save()
-    .then(() => res.status(201).json({ message: 'User created successfully' }))
-    .catch(err => res.status(500).json({ error: 'Failed to create user' }));
+ user.save()
+  .then((savedUser) => {
+    res.status(201).json({
+      username: savedUser.username,
+      _id: savedUser._id
+    });
+  })
+  .catch(err => res.status(500).json({ error: 'Failed to create user' }));
 
-  res.json({
-    username: user.username,
-    _id: user._id
-  });
+
+  
 });
+
+app.get('/api/users', async (req, res) => {
+    const users =  await User.find({}, { username: 1, _id: 1 })
+    res.json(users)
+});
+
+app.post('/api/users/:_id/logs', async (req, res) => {
+  const userId = req.params._id;
+  const {duration,description,date} = req.body;
+
+  if (!description || !duration) {
+      return res.status(400).json({ error: 'Description and duration are required.' });
+    }
+
+  const logData = data ? new Date(date) : new Date();
+
+  const exercise = new Exercise({userId, description,duration,logData});
+  exercise.save()
+  .then((savedExercise)=>{
+    res.status(201).json({
+      _id: userId,
+      username: savedExercise.userId,
+      description: savedExercise.description,
+      duration: savedExercise.duration,
+      date: savedExercise.logData.toDateString()
+    })
+  })
+    
+}
 
 
 
