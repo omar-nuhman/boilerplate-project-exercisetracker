@@ -68,27 +68,42 @@ app.get('/api/users', async (req, res) => {
 
 app.post('/api/users/:_id/logs', async (req, res) => {
   const userId = req.params._id;
-  const {duration,description,date} = req.body;
+  const { duration, description, date } = req.body;
 
   if (!description || !duration) {
-      return res.status(400).json({ error: 'Description and duration are required.' });
+    return res.status(400).json({ error: 'Description and duration are required.' });
+  }
+
+  const logDate = date ? new Date(date) : new Date();
+
+  try {
+    // Find user to get username
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
     }
 
-  const logData = data ? new Date(date) : new Date();
+    const exercise = new Exercise({
+      userId,
+      description,
+      duration,
+      date: logDate
+    });
 
-  const exercise = new Exercise({userId, description,duration,logData});
-  exercise.save()
-  .then((savedExercise)=>{
+    const savedExercise = await exercise.save();
+
     res.status(201).json({
-      _id: userId,
-      username: savedExercise.userId,
+      _id: user._id,
+      username: user.username,
       description: savedExercise.description,
       duration: savedExercise.duration,
-      date: savedExercise.logData.toDateString()
-    })
-  })
-    
-}
+      date: savedExercise.date.toDateString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Something went wrong while saving exercise log.' });
+  }
+});
+
 
 
 
