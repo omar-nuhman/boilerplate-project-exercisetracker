@@ -66,7 +66,7 @@ app.get('/api/users', async (req, res) => {
     res.json(users)
 });
 
-app.post('/api/users/:_id/logs', async (req, res) => {
+app.post('/api/users/:_id/exercises', async (req, res) => {
   const userId = req.params._id;
   const { duration, description, date } = req.body;
 
@@ -103,6 +103,49 @@ app.post('/api/users/:_id/logs', async (req, res) => {
     res.status(500).json({ error: 'Something went wrong while saving exercise log.' });
   }
 });
+
+app.get('/api/users/:_id/logs', async (req, res) => {
+  const { from, to, limit } = req.query;
+  const userId = req.params._id;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    let filter = { userId };
+
+    if (from || to) {
+      filter.date = {};
+      if (from) filter.date.$gte = new Date(from);
+      if (to) filter.date.$lte = new Date(to);
+    }
+
+    const query = Exercise.find(filter).select('description duration date');
+    if (limit) {
+      query.limit(parseInt(limit));
+    }
+
+    const exercises = await query.exec();
+
+    const log = exercises.map(ex => ({
+      description: ex.description,
+      duration: ex.duration,
+      date: ex.date.toDateString()
+    }));
+
+    res.json({
+      _id: user._id,
+      username: user.username,
+      count: log.length,
+      log
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching logs' });
+  }
+});
+
 
 
 
